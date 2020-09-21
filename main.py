@@ -111,7 +111,6 @@ async def inline_answers(inline_query: types.InlineQuery):
     text = inline_query.query
     query_id = inline_query.id
     user_id = inline_query['from'].id
-    result_id: str = hashlib.md5((text+str(query_id)).encode()).hexdigest()
     try:
         res = list(db.keywords.find({'user_id': user_id, 'key': text}))[0]
         print(res)
@@ -121,48 +120,56 @@ async def inline_answers(inline_query: types.InlineQuery):
     text = res['text']
     alternate = types.InputTextMessageContent(text, parse_mode='html')
     if f_len:
-        file = res['files'][0]
-        f_type = file['type']
-        semple = {
-            'id': result_id,
-            'title': res['raw_text'],
-            'caption': text,
-            'parse_mode': 'html',
-        }
-        if f_type == ContentType.PHOTO:
-            item = types.InlineQueryResultCachedPhoto(
-                **semple,
-                photo_file_id=file['file_id'],
-            )
-        if f_type == ContentType.VIDEO:
-            item = types.InlineQueryResultCachedVideo(
-                **semple,
-                video_file_id=file['file_id'],
-            )
-        if f_type == ContentType.ANIMATION:
-            item = types.InlineQueryResultCachedMpeg4Gif(
-                **semple,
-                mpeg4_file_id=file['file_id'],
-            )
-        if f_type == ContentType.AUDIO:
-            item = types.InlineQueryResultCachedAudio(
-                id=result_id,
-                audio_file_id=file['file_id'],
-                caption=text,
-                parse_mode='html',
-            )
-        if f_type == ContentType.DOCUMENT:
-            item = types.InlineQueryResultCachedDocument(
-                **semple,
-                document_file_id=file['file_id'],
-            )
+        items = []
+        for file in res['files']:
+            f_type = file['type']
+            result_id: str = hashlib.md5((text+str(query_id)+file['file_id']).encode()).hexdigest()
+            semple = {
+                'id': result_id,
+                'title': ' '.join(res['raw_text'].split(maxsplit=4)[:4]),
+                'caption': text,
+                'description': res['raw_text'],
+                'parse_mode': 'html',
+            }
+            if f_type == ContentType.PHOTO:
+                item = types.InlineQueryResultCachedPhoto(
+                    **semple,
+                    photo_file_id=file['file_id'],
+                )
+            if f_type == ContentType.VIDEO:
+                item = types.InlineQueryResultCachedVideo(
+                    **semple,
+                    video_file_id=file['file_id'],
+                )
+            if f_type == ContentType.ANIMATION:
+                item = types.InlineQueryResultCachedMpeg4Gif(
+                    id=result_id,
+                    mpeg4_file_id=file['file_id'],
+                    title=semple['title'],
+                    caption=semple['caption'],
+                    parse_mode='html',
+                )
+            if f_type == ContentType.AUDIO:
+                item = types.InlineQueryResultCachedAudio(
+                    id=result_id,
+                    audio_file_id=file['file_id'],
+                    caption=text,
+                    parse_mode='html',
+                )
+            if f_type == ContentType.DOCUMENT:
+                item = types.InlineQueryResultCachedDocument(
+                    **semple,
+                    document_file_id=file['file_id'],
+                )
+            items.append(item)
     else:
-        item = types.InlineQueryResultArticle(
+        result_id: str = hashlib.md5((text+str(query_id)).encode()).hexdigest()
+        items = [types.InlineQueryResultArticle(
             id=result_id,
             title=res['text'],
             input_message_content=alternate
-        )
-    await bot.answer_inline_query(query_id, results=[item], is_personal=True, cache_time=1)
+        )]
+    await bot.answer_inline_query(query_id, results=items, is_personal=True, cache_time=1)
 
 
 @dp.message_handler(commands=['help'])
@@ -179,7 +186,8 @@ async def on_start(message: types.Message):
 async def on_list(message: types.Message):
     user_id = message.from_user.id
     res = list(db.keywords.find({'user_id': user_id}))
-    text = '\n'.join(list(map(lambda kwd: f'```{kwd["key"]}```: {" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}...', res)))
+    text = '\n'.join(list(map(
+        lambda kwd: f'`{kwd["key"]}`: *{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}...*', res)))
     await send_simple_answer(message, TEXT.ON_LIST, [text])
 
 
