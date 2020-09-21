@@ -1,14 +1,17 @@
 from config import TOKEN
 from locales import LOCALES, TEXT
-from mongodb import db
 import logging
 import hashlib
+import pymongo
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.message import ContentType
 from aiogram.types.input_media import InputMediaPhoto, InputMediaVideo
 from aiogram.dispatcher import filters
 
 logging.basicConfig(level=logging.DEBUG)
+
+client = pymongo.MongoClient("localhost", 27017)
+db = client.kBinderDB
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
@@ -58,7 +61,7 @@ def keyword_splitter(full_text):
             raw_text += ch
         if ch == '>':
             flag = True
-    return (keyword, text, raw_text)
+    return (keyword.lower(), text, raw_text)
 
 
 async def send_simple_answer(message: types.Message, variant: str, params: list = []):
@@ -108,25 +111,25 @@ async def send_keyword_answer(user_id, keyword):
 
 @dp.inline_handler()
 async def inline_answers(inline_query: types.InlineQuery):
-    text = inline_query.query
+    query_text = inline_query.query.lower().split(maxsplit=1)[0]
     query_id = inline_query.id
     user_id = inline_query['from'].id
     try:
-        res = list(db.keywords.find({'user_id': user_id, 'key': text}))[0]
-        print(res)
+        res = list(db.keywords.find(
+            {'user_id': user_id, 'key': query_text}))[0]
     except IndexError:
         return
     f_len = len(res['files'])
     text = res['text']
-    alternate = types.InputTextMessageContent(text, parse_mode='html')
     if f_len:
         items = []
         for file in res['files']:
             f_type = file['type']
-            result_id: str = hashlib.md5((text+str(query_id)+file['file_id']).encode()).hexdigest()
+            result_id: str = hashlib.md5(
+                (text+str(query_id)+file['file_id']).encode()).hexdigest()
             semple = {
                 'id': result_id,
-                'title': ' '.join(res['raw_text'].split(maxsplit=4)[:4]),
+                'title': query_text,
                 'caption': text,
                 'description': res['raw_text'],
                 'parse_mode': 'html',
@@ -166,8 +169,10 @@ async def inline_answers(inline_query: types.InlineQuery):
         result_id: str = hashlib.md5((text+str(query_id)).encode()).hexdigest()
         items = [types.InlineQueryResultArticle(
             id=result_id,
-            title=res['text'],
-            input_message_content=alternate
+            title=query_text,
+            description=res['raw_text'],
+            input_message_content=types.InputTextMessageContent(
+                text, parse_mode='html')
         )]
     await bot.answer_inline_query(query_id, results=items, is_personal=True, cache_time=1)
 
@@ -187,7 +192,7 @@ async def on_list(message: types.Message):
     user_id = message.from_user.id
     res = list(db.keywords.find({'user_id': user_id}))
     text = '\n'.join(list(map(
-        lambda kwd: f'`{kwd["key"]}`: *{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}...*', res)))
+        lambda kwd: f'`{kwd["key"]}`: _{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}..._', res)))
     await send_simple_answer(message, TEXT.ON_LIST, [text])
 
 
@@ -236,14 +241,14 @@ async def on_bind(message: types.Message):
         db.keywords.insert_one(bind)
         await send_keyword_answer(message.from_user.id, keyword)
     except (ValueError, IndexError):
-        if len(message.html_text.split(maxsplit=1)) == 0:
+        if len(message.html_text.split(maxsplit=1)) == 1:
             await send_simple_answer(message, TEXT.ON_BIND_ERROR)
         else:
-            try:
-                db.keywords.delete_one(
-                    {'user_id': message.from_user.id, 'key': keyword})
+            res = db.keywords.delete_one(
+                {'user_id': message.from_user.id, 'key': keyword})
+            if res.deleted_count:
                 await send_simple_answer(message, TEXT.ON_BIND_DELETE)
-            except UnboundLocalError:
+            else:
                 await send_simple_answer(message, TEXT.ON_BIND_DELETE_ERROR)
 
 
