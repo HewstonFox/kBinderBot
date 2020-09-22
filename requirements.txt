@@ -11,3 +11,4 @@ pymongo==3.11.0
 pytz==2020.1
 ujson==3.2.0
 yarl==1.5.1
+dnspython==1.16.0
