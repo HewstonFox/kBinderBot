@@ -111,6 +111,7 @@ async def send_keyword_answer(user_id, keywords):
 
 @dp.inline_handler()
 async def inline_answers(inline_query: types.InlineQuery):
+
     try:
         query_text = inline_query.query.lower().split(maxsplit=1)[0]
     except IndexError:
