@@ -10,7 +10,7 @@ from aiogram.dispatcher import filters
 
 logging.basicConfig(level=logging.DEBUG)
 
-client = pymongo.MongoClient(f"{PROTOCOL}://{USERNAME}:{PASSWORD}@{HOST}/{PATH}?{QUERY}", PORT)
+client = pymongo.MongoClient(DB_URL, PORT)
 db = client.kBinderDB
 
 bot = Bot(token=TOKEN)
@@ -111,7 +111,6 @@ async def send_keyword_answer(user_id, keywords):
 
 @dp.inline_handler()
 async def inline_answers(inline_query: types.InlineQuery):
-
     try:
         query_text = inline_query.query.lower().split(maxsplit=1)[0]
     except IndexError:

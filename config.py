@@ -1,8 +1,6 @@
+import os
+
+DB_URL = os.environ.get('MONGODB_URL') or 'mongodb+srv://mrHeroku:Dg549SGfnRbg5WML@kbinderdb.ztsdv.mongodb.net' \
+                                          '/kBinderDB?retryWrites=true&w=majority'
 TOKEN = '1028373326:AAERuI4AxtIrejLvk-TQBwTY_k0iCkXMzxw'
-PROTOCOL = 'mongodb+srv'
-HOST = 'kbinderdb.ztsdv.mongodb.net'
 PORT = 27017
-PATH = 'kBinderDB'
-USERNAME = 'mrHeroku'
-PASSWORD = 'Dg549SGfnRbg5WML'
-QUERY = 'retryWrites=true&w=majority'
