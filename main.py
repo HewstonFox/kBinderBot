@@ -134,6 +134,7 @@ async def inline_answers(inline_query: types.InlineQuery):
                 'description': res['raw_text'],
                 'parse_mode': 'html',
             }
+            item = None
             if f_type == ContentType.PHOTO:
                 item = types.InlineQueryResultCachedPhoto(
                     **semple,
@@ -203,7 +204,8 @@ async def on_bind(message: types.Message):
     if message.media_group_id:
         media_group = list(filter(lambda msg: msg.media_group_id == message.media_group_id,
                                   map(lambda upd: upd.message, await bot.get_updates())))
-    is_media_goup = bool(len(media_group))
+    is_media_group = bool(len(media_group))
+    keyword = ''
     try:
         keyword, text, raw_text = keyword_splitter(message.html_text)
         bind = {
@@ -216,7 +218,7 @@ async def on_bind(message: types.Message):
             if text == '':
                 raise ValueError
 
-        msgs = media_group if is_media_goup else [message]
+        msgs = media_group if is_media_group else [message]
         files = []
         for msg in msgs:
             msg_type = msg.content_type
