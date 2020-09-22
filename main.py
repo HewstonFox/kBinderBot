@@ -1,4 +1,4 @@
-from config import TOKEN
+from config import *
 from locales import LOCALES, TEXT
 import logging
 import hashlib
@@ -10,7 +10,7 @@ from aiogram.dispatcher import filters
 
 logging.basicConfig(level=logging.DEBUG)
 
-client = pymongo.MongoClient("localhost", 27017)
+client = pymongo.MongoClient(f"{PROTOCOL}://{USERNAME}:{PASSWORD}@{HOST}/{PATH}?{QUERY}", PORT)
 db = client.kBinderDB
 
 bot = Bot(token=TOKEN)
@@ -64,14 +64,14 @@ def keyword_splitter(full_text):
     return (keyword.lower(), text, raw_text)
 
 
-async def send_simple_answer(message: types.Message, variant: str, params: list = []):
+async def send_simple_answer(message: types.Message, variant: str, params: list = ()):
     locale = (message.from_user.language_code or 'en').split('-')[0]
     text = LOCALES['en'][variant] if locale not in LOCALES else LOCALES[locale][variant]
     await bot.send_message(chat_id=message.chat.id, text=text.format(*params), parse_mode='Markdown')
 
 
-async def send_keyword_answer(user_id, keyword):
-    response = db.keywords.find({'user_id': user_id, 'key': keyword})
+async def send_keyword_answer(user_id, keywords):
+    response = db.keywords.find({'user_id': user_id, 'key': keywords})
     content = list(response)[0]
     f_len = len(content['files'])
     if f_len > 1:
@@ -103,7 +103,7 @@ async def send_keyword_answer(user_id, keyword):
                                  audio=file['file_id'], caption=content['text'], parse_mode='html')
         if f_type == ContentType.DOCUMENT:
             await bot.send_document(
-                chat_id=user_id, document=file['file_id'], caption=content['text'],  parse_mode='html')
+                chat_id=user_id, document=file['file_id'], caption=content['text'], parse_mode='html')
     else:
         await bot.send_message(
             chat_id=user_id, text=content['text'], parse_mode='html')
@@ -111,7 +111,10 @@ async def send_keyword_answer(user_id, keyword):
 
 @dp.inline_handler()
 async def inline_answers(inline_query: types.InlineQuery):
-    query_text = inline_query.query.lower().split(maxsplit=1)[0]
+    try:
+        query_text = inline_query.query.lower().split(maxsplit=1)[0]
+    except IndexError:
+        return
     query_id = inline_query.id
     user_id = inline_query['from'].id
     try:
@@ -126,8 +129,8 @@ async def inline_answers(inline_query: types.InlineQuery):
         for file in res['files']:
             f_type = file['type']
             result_id: str = hashlib.md5(
-                (text+str(query_id)+file['file_id']).encode()).hexdigest()
-            semple = {
+                (text + str(query_id) + file['file_id']).encode()).hexdigest()
+            bind = {
                 'id': result_id,
                 'title': query_text,
                 'caption': text,
@@ -137,20 +140,20 @@ async def inline_answers(inline_query: types.InlineQuery):
             item = None
             if f_type == ContentType.PHOTO:
                 item = types.InlineQueryResultCachedPhoto(
-                    **semple,
+                    **bind,
                     photo_file_id=file['file_id'],
                 )
             if f_type == ContentType.VIDEO:
                 item = types.InlineQueryResultCachedVideo(
-                    **semple,
+                    **bind,
                     video_file_id=file['file_id'],
                 )
             if f_type == ContentType.ANIMATION:
                 item = types.InlineQueryResultCachedMpeg4Gif(
                     id=result_id,
                     mpeg4_file_id=file['file_id'],
-                    title=semple['title'],
-                    caption=semple['caption'],
+                    title=bind['title'],
+                    caption=bind['caption'],
                     parse_mode='html',
                 )
             if f_type == ContentType.AUDIO:
@@ -162,12 +165,12 @@ async def inline_answers(inline_query: types.InlineQuery):
                 )
             if f_type == ContentType.DOCUMENT:
                 item = types.InlineQueryResultCachedDocument(
-                    **semple,
+                    **bind,
                     document_file_id=file['file_id'],
                 )
             items.append(item)
     else:
-        result_id: str = hashlib.md5((text+str(query_id)).encode()).hexdigest()
+        result_id: str = hashlib.md5((text + str(query_id)).encode()).hexdigest()
         items = [types.InlineQueryResultArticle(
             id=result_id,
             title=query_text,
@@ -192,9 +195,12 @@ async def on_start(message: types.Message):
 async def on_list(message: types.Message):
     user_id = message.from_user.id
     res = list(db.keywords.find({'user_id': user_id}))
-    text = '\n'.join(list(map(
-        lambda kwd: f'`{kwd["key"]}`: _{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}..._', res)))
-    await send_simple_answer(message, TEXT.ON_LIST, [text])
+    if len(res):
+        text = '\n'.join(list(map(
+            lambda kwd: f'`{", ".join(kwd["key"])}`: _{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}..._', res)))
+        await send_simple_answer(message, TEXT.ON_LIST, [text])
+    else:
+        await send_simple_answer(message, TEXT.ON_LIST_EMPTY)
 
 
 @dp.message_handler(filters.Command('bind', ignore_caption=False),
@@ -205,12 +211,12 @@ async def on_bind(message: types.Message):
         media_group = list(filter(lambda msg: msg.media_group_id == message.media_group_id,
                                   map(lambda upd: upd.message, await bot.get_updates())))
     is_media_group = bool(len(media_group))
-    keyword = ''
     try:
         keyword, text, raw_text = keyword_splitter(message.html_text)
+        keywords = keyword.split(',')
         bind = {
             'user_id': message.from_user.id,
-            'key': keyword,
+            'key': keywords,
             'text': text,
             'raw_text': raw_text
         }
@@ -238,20 +244,42 @@ async def on_bind(message: types.Message):
                 files.append(
                     {'file_id': msg.document.file_id, 'type': ContentType.DOCUMENT})
         bind['files'] = files
-        db.keywords.delete_one(
-            {'user_id': message.from_user.id, 'key': keyword})
-        db.keywords.insert_one(bind)
-        await send_keyword_answer(message.from_user.id, keyword)
-    except (ValueError, IndexError):
-        if len(message.html_text.split(maxsplit=1)) == 1:
-            await send_simple_answer(message, TEXT.ON_BIND_ERROR)
-        else:
-            res = db.keywords.delete_one(
-                {'user_id': message.from_user.id, 'key': keyword})
-            if res.deleted_count:
-                await send_simple_answer(message, TEXT.ON_BIND_DELETE)
+
+        req = {'$or': []}
+        for kwd in keywords:
+            req['$or'].append({'key': kwd, 'user_id': message.from_user.id})
+        matches = list(db.keywords.find(req))
+        for match in matches:
+            new_keys = list(set(match['key']) - set(keywords))
+            if len(new_keys):
+                db.keywords.update({'_id': match['_id']}, {'key': new_keys})
             else:
-                await send_simple_answer(message, TEXT.ON_BIND_DELETE_ERROR)
+                db.keywords.delete_one({'_id': match['_id']})
+
+        db.keywords.insert_one(bind)
+        await send_keyword_answer(message.from_user.id, keywords)
+    except (ValueError, IndexError):
+        await send_simple_answer(message, TEXT.ON_BIND_ERROR)
+
+
+@dp.message_handler(commands=['unbind'])
+async def on_unbind(message: types.Message):
+    user_id = message.from_user.id
+    try:
+        key: str = message.text.split(maxsplit=2)[1:3][0]
+        matches = list(db.keywords.find({'user_id': user_id, 'key': key}))
+        for match in matches:
+            new_keys = [x for x in match['key'] if x != key]
+            if len(new_keys):
+                db.keywords.update_one({'_id': match['_id']}, {'$set': {'key': new_keys}})
+            else:
+                db.keywords.delete_one({'_id': match['_id']})
+        if len(matches):
+            await send_simple_answer(message, TEXT.ON_UNBIND_DELETE)
+        else:
+            raise IndexError
+    except IndexError:
+        await send_simple_answer(message, TEXT.ON_UNBIND_DELETE_ERROR)
 
 
 if __name__ == '__main__':
