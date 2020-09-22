@@ -10,7 +10,7 @@ from aiogram.dispatcher import filters
 
 logging.basicConfig(level=logging.DEBUG)
 
-client = pymongo.MongoClient(DB_URL)
+client = pymongo.MongoClient(DB_URL, 1316)
 db = client.kBinderDB
 
 bot = Bot(token=TOKEN)
