@@ -77,7 +77,7 @@ async def send_keyword_answer(user_id, keywords):
     if f_len > 1 and content['files'][0]['type'] in (ContentType.PHOTO, ContentType.VIDEO):
         media = types.MediaGroup()
         first = True
-        for file in content['files']:
+        for file in content['files'][:10]:
             if file['type'] == ContentType.PHOTO:
                 media.attach_photo(
                     InputMediaPhoto(file['file_id'], parse_mode='html', caption=content['text'] if first else ''))
