@@ -18,19 +18,19 @@ dp = Dispatcher(bot)
 
 
 def keyword_splitter(full_text):
-    splited = full_text.split(maxsplit=2)[1:]
-    kwd, txt = splited if len(splited) == 2 else (splited[0], '')
-    substr = ''
+    split_text = full_text.split(maxsplit=2)[1:]
+    kwd, txt = split_text if len(split_text) == 2 else (split_text[0], '')
+    substring = ''
     flag = False
     for ch in kwd[::-1]:
         if ch == '>':
             flag = True
         if flag:
-            substr += ch
+            substring += ch
         if ch == '<':
             flag = False
-            txt = substr[::-1] + txt
-            substr = ''
+            txt = substring[::-1] + txt
+            substring = ''
     keyword = ''
     flag = True
     for ch in kwd:
@@ -61,7 +61,7 @@ def keyword_splitter(full_text):
             raw_text += ch
         if ch == '>':
             flag = True
-    return (keyword.lower(), text, raw_text)
+    return keyword.lower(), text, raw_text
 
 
 async def send_simple_answer(message: types.Message, variant: str, params: list = ()):
@@ -207,8 +207,8 @@ async def on_list(message: types.Message):
                     content_types=types.ContentTypes.ANY)
 async def on_bind(message: types.Message):
     media_group = []
-    if message.media_group_id:
-        media_group = list(filter(lambda msg: msg.media_group_id == message.media_group_id,
+    if message.content_type != ContentType.TEXT:
+        media_group = list(filter(lambda mess: mess.from_user.id == message.from_user.id,
                                   map(lambda upd: upd.message, await bot.get_updates())))
     is_media_group = bool(len(media_group))
     try:
