@@ -74,7 +74,7 @@ async def send_keyword_answer(user_id, keywords):
     response = db.keywords.find({'user_id': user_id, 'key': keywords})
     content = list(response)[0]
     f_len = len(content['files'])
-    if f_len > 1:
+    if f_len > 1 and content['files'][0]['type'] in (ContentType.PHOTO, ContentType.VIDEO):
         media = types.MediaGroup()
         first = True
         for file in content['files']:
@@ -86,7 +86,7 @@ async def send_keyword_answer(user_id, keywords):
                     InputMediaVideo(file['file_id'], parse_mode='html', caption=content['text'] if first else ''))
             first = False
         await bot.send_media_group(chat_id=user_id, media=media)
-    elif f_len == 1:
+    elif f_len > 0:
         file = content['files'][0]
         f_type = file['type']
         if f_type == ContentType.PHOTO:
