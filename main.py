@@ -1,4 +1,5 @@
 from config import *
+import re
 from locales import LOCALES, TEXT
 import logging
 import hashlib
@@ -109,21 +110,31 @@ async def send_keyword_answer(user_id, keywords):
             chat_id=user_id, text=content['text'], parse_mode='html')
 
 
+def insert_args(text, args=()) -> str:
+    if not args:
+        return text
+    edited_text = text
+    for arg in args:
+        edited_text = re.sub(r'#(\S+)', arg, edited_text, 1)
+    return edited_text
+
+
 @dp.inline_handler()
 async def inline_answers(inline_query: types.InlineQuery):
     try:
-        query_text = inline_query.query.lower().split(maxsplit=1)[0]
+        (kwd, *args) = inline_query.query.lower().split()
     except IndexError:
         return
     query_id = inline_query.id
     user_id = inline_query['from'].id
     try:
         res = list(db.keywords.find(
-            {'user_id': user_id, 'key': query_text}))[0]
+            {'user_id': user_id, 'key': kwd}))[0]
     except IndexError:
         return
     f_len = len(res['files'])
-    text = res['text']
+    text = insert_args(res['text'], args)
+
     if f_len:
         items = []
         for file in res['files']:
@@ -132,7 +143,7 @@ async def inline_answers(inline_query: types.InlineQuery):
                 (text + str(query_id) + file['file_id']).encode()).hexdigest()
             bind = {
                 'id': result_id,
-                'title': query_text,
+                'title': kwd,
                 'caption': text,
                 'description': res['raw_text'],
                 'parse_mode': 'html',
@@ -173,7 +184,7 @@ async def inline_answers(inline_query: types.InlineQuery):
         result_id: str = hashlib.md5((text + str(query_id)).encode()).hexdigest()
         items = [types.InlineQueryResultArticle(
             id=result_id,
-            title=query_text,
+            title=kwd,
             description=res['raw_text'],
             input_message_content=types.InputTextMessageContent(
                 text, parse_mode='html')
