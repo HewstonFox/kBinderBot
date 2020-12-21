@@ -81,10 +81,10 @@ async def send_keyword_answer(user_id, keywords):
         for file in content['files'][:10]:
             if file['type'] == ContentType.PHOTO:
                 media.attach_photo(
-                    InputMediaPhoto(file['file_id'], parse_mode='html', caption=content['text'] if first else ''))
+                    InputMediaPhoto(file['file_id'], parse_mode='html', caption=insert_args(content['text']) if first else ''))
             elif file['type'] == ContentType.VIDEO:
                 media.attach_video(
-                    InputMediaVideo(file['file_id'], parse_mode='html', caption=content['text'] if first else ''))
+                    InputMediaVideo(file['file_id'], parse_mode='html', caption=insert_args(content['text']) if first else ''))
             first = False
         await bot.send_media_group(chat_id=user_id, media=media)
     elif f_len > 0:
