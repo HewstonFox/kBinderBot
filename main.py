@@ -92,22 +92,22 @@ async def send_keyword_answer(user_id, keywords):
         f_type = file['type']
         if f_type == ContentType.PHOTO:
             await bot.send_photo(chat_id=user_id,
-                                 photo=file['file_id'], caption=content['text'], parse_mode='html')
+                                 photo=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
         if f_type == ContentType.VIDEO:
             await bot.send_video(chat_id=user_id,
-                                 video=file['file_id'], caption=content['text'], parse_mode='html')
+                                 video=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
         if f_type == ContentType.ANIMATION:
             await bot.send_animation(
-                chat_id=user_id, animation=file['file_id'], caption=file['text'], parse_mode='html')
+                chat_id=user_id, animation=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
         if f_type == ContentType.AUDIO:
             await bot.send_audio(chat_id=user_id,
-                                 audio=file['file_id'], caption=content['text'], parse_mode='html')
+                                 audio=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
         if f_type == ContentType.DOCUMENT:
             await bot.send_document(
-                chat_id=user_id, document=file['file_id'], caption=content['text'], parse_mode='html')
+                chat_id=user_id, document=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
     else:
         await bot.send_message(
-            chat_id=user_id, text=content['text'], parse_mode='html')
+            chat_id=user_id, text=insert_args(content['text']), parse_mode='html')
 
 
 def insert_args(text, args=()) -> str:
