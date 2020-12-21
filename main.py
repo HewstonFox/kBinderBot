@@ -115,7 +115,7 @@ def insert_args(text, args=()) -> str:
         return text.replace(' @', ' ')
     edited_text = text
     for arg in args:
-        edited_text = re.sub(r' @[\w]+', ' ' + arg, edited_text, 1)
+        edited_text = re.sub(r' @[\w]*', ' ' + arg, edited_text, 1)
     edited_text = edited_text.replace(' @', ' ')
     return edited_text
 
