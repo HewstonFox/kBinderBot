@@ -184,7 +184,7 @@ async def inline_answers(inline_query: types.InlineQuery):
         result_id: str = hashlib.md5((text + str(query_id)).encode()).hexdigest()
         items = [types.InlineQueryResultArticle(
             id=result_id,
-            title=kwd,
+            title=text,
             description=res['raw_text'],
             input_message_content=types.InputTextMessageContent(
                 text, parse_mode='html')
