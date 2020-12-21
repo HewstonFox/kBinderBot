@@ -115,7 +115,7 @@ def insert_args(text, args=()) -> str:
         return text
     edited_text = text
     for arg in args:
-        edited_text = re.sub(r' @(\S+)', ' ' + arg, edited_text, 1)
+        edited_text = re.sub(r' @[\w]+', ' ' + arg, edited_text, 1)
     edited_text = edited_text.replace(' @', ' ')
     return edited_text
 
@@ -123,7 +123,8 @@ def insert_args(text, args=()) -> str:
 @dp.inline_handler()
 async def inline_answers(inline_query: types.InlineQuery):
     try:
-        (kwd, *args) = inline_query.query.lower().split()
+        (kwd, *args) = inline_query.query.split()
+        kwd = kwd.lower()
     except IndexError:
         return
     query_id = inline_query.id
