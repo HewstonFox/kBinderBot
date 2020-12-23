@@ -6,7 +6,11 @@ import hashlib
 import pymongo
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.message import ContentType
-from aiogram.types.input_media import InputMediaPhoto, InputMediaVideo
+from aiogram.types.input_media import InputMedia, InputMediaPhoto, InputMediaVideo, \
+    InputMediaAudio, InputMediaDocument, InputMediaAnimation
+from aiogram.types.inline_query_result import InlineQueryResult, InlineQueryResultArticle, \
+    InlineQueryResultCachedAudio, InlineQueryResultCachedDocument, InlineQueryResultCachedGif, \
+    InlineQueryResultCachedMpeg4Gif, InlineQueryResultCachedPhoto, InlineQueryResultCachedVideo
 from aiogram.dispatcher import filters
 
 logging.basicConfig(level=logging.DEBUG)
@@ -18,7 +22,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
 
-def keyword_splitter(full_text):
+def keyword_splitter(full_text: str):
     split_text = full_text.split(maxsplit=2)[1:]
     kwd, txt = split_text if len(split_text) == 2 else (split_text[0], '')
     substring = ''
@@ -65,61 +69,76 @@ def keyword_splitter(full_text):
     return keyword.lower(), text, raw_text
 
 
+def insert_args(text: str, args: list = ()) -> str:
+    var = r' @([\w]*) '
+    edited_text = text
+    for arg in args:
+        if arg == '_':
+            default = re.search(var, edited_text).groups()[0]
+            edited_text = re.sub(var, f' {default} ' if default else ' ', edited_text, 1)
+            continue
+        edited_text = re.sub(var, f' {arg} ', edited_text, 1)
+    while searched := re.search(var, edited_text):
+        default = searched.groups()[0]
+        edited_text = re.sub(var, f' {default} ' if default else ' ', edited_text, 1)
+    edited_text = edited_text.replace(r' \@', ' @')
+    return edited_text
+
+
+def input_media(file: dict, text: str) -> InputMedia:
+    type = file['type']
+    file_id = file['file_id']
+    params = {'caption': text, 'parse_mode': 'html'}
+    if type == ContentType.PHOTO:
+        return InputMediaPhoto(file_id, **params)
+    if type == ContentType.VIDEO:
+        return InputMediaVideo(file_id, **params)
+    if type == ContentType.AUDIO:
+        return InputMediaAudio(file_id, **params)
+    if type == ContentType.DOCUMENT:
+        return InputMediaDocument(file_id, **params)
+    if type == ContentType.ANIMATION:
+        return InputMediaAnimation(file_id, **params)
+
+
+async def send_input_media_message(user_id: (int, str), text: str, file: (dict, None)) -> types.Message:
+    type = file['type']
+    file_id = file['file_id']
+    params = {'chat_id': user_id, 'caption': text, 'parse_mode': 'html'}
+    if type == ContentType.PHOTO:
+        return await bot.send_photo(photo=file_id, **params)
+    if type == ContentType.VIDEO:
+        return await bot.send_video(video=file_id, **params)
+    if type == ContentType.AUDIO:
+        return await bot.send_audio(audio=file_id, **params)
+    if type == ContentType.DOCUMENT:
+        return await bot.send_document(document=file_id, **params)
+    if type == ContentType.ANIMATION:
+        return await bot.send_animation(animation=file_id, **params)
+
+
 async def send_simple_answer(message: types.Message, variant: str, params: list = ()):
     locale = (message.from_user.language_code or 'en').split('-')[0]
     text = LOCALES['en'][variant] if locale not in LOCALES else LOCALES[locale][variant]
     await bot.send_message(chat_id=message.chat.id, text=text.format(*params), parse_mode='Markdown')
 
 
-async def send_keyword_answer(user_id, keywords):
+async def send_keyword_answer(user_id: (int, str), keywords: list):
     response = db.keywords.find({'user_id': user_id, 'key': keywords})
     content = list(response)[0]
     f_len = len(content['files'])
-    if f_len > 1 and content['files'][0]['type'] in (ContentType.PHOTO, ContentType.VIDEO):
+    text = insert_args(content['text'])
+    if f_len > 1:
         media = types.MediaGroup()
         first = True
         for file in content['files'][:10]:
-            if file['type'] == ContentType.PHOTO:
-                media.attach_photo(
-                    InputMediaPhoto(file['file_id'], parse_mode='html', caption=insert_args(content['text']) if first else ''))
-            elif file['type'] == ContentType.VIDEO:
-                media.attach_video(
-                    InputMediaVideo(file['file_id'], parse_mode='html', caption=insert_args(content['text']) if first else ''))
+            media.attach(input_media(file, text if first else ''))
             first = False
         await bot.send_media_group(chat_id=user_id, media=media)
     elif f_len > 0:
-        file = content['files'][0]
-        f_type = file['type']
-        if f_type == ContentType.PHOTO:
-            await bot.send_photo(chat_id=user_id,
-                                 photo=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
-        if f_type == ContentType.VIDEO:
-            await bot.send_video(chat_id=user_id,
-                                 video=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
-        if f_type == ContentType.ANIMATION:
-            await bot.send_animation(
-                chat_id=user_id, animation=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
-        if f_type == ContentType.AUDIO:
-            await bot.send_audio(chat_id=user_id,
-                                 audio=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
-        if f_type == ContentType.DOCUMENT:
-            await bot.send_document(
-                chat_id=user_id, document=file['file_id'], caption=insert_args(content['text']), parse_mode='html')
+        await send_input_media_message(user_id, text, content['files'][0])
     else:
-        await bot.send_message(
-            chat_id=user_id, text=insert_args(content['text']), parse_mode='html')
-
-
-def insert_args(text, args=()) -> str:
-    if not args:
-        return text.replace(' @ ', ' ').replace(' @', ' ').replace(r' \@', ' @')
-    edited_text = text
-    for arg in args:
-        if arg == '_':
-            continue
-        edited_text = re.sub(r' @[\w]*', ' ' + arg, edited_text, 1)
-    edited_text = edited_text.replace(' @ ', ' ').replace(' @', ' ').replace(r' \@', ' @')
-    return edited_text
+        await bot.send_message(chat_id=user_id, text=text, parse_mode='html')
 
 
 @dp.inline_handler()
@@ -127,7 +146,7 @@ async def inline_answers(inline_query: types.InlineQuery):
     try:
         (kwd, *args) = inline_query.query.split()
         kwd = kwd.lower()
-    except IndexError:
+    except ValueError:
         return
     query_id = inline_query.id
     user_id = inline_query['from'].id
@@ -143,8 +162,7 @@ async def inline_answers(inline_query: types.InlineQuery):
         items = []
         for file in res['files']:
             f_type = file['type']
-            result_id: str = hashlib.md5(
-                (text + str(query_id) + file['file_id']).encode()).hexdigest()
+            result_id: str = hashlib.md5((text + str(query_id) + file['file_id']).encode()).hexdigest()
             bind = {
                 'id': result_id,
                 'title': kwd,
@@ -154,45 +172,38 @@ async def inline_answers(inline_query: types.InlineQuery):
             }
             item = None
             if f_type == ContentType.PHOTO:
-                item = types.InlineQueryResultCachedPhoto(
-                    **bind,
-                    photo_file_id=file['file_id'],
-                )
-            if f_type == ContentType.VIDEO:
-                item = types.InlineQueryResultCachedVideo(
-                    **bind,
-                    video_file_id=file['file_id'],
-                )
-            if f_type == ContentType.ANIMATION:
-                item = types.InlineQueryResultCachedMpeg4Gif(
+                item = InlineQueryResultCachedPhoto(**bind, photo_file_id=file['file_id'])
+            elif f_type == ContentType.VIDEO:
+                item = InlineQueryResultCachedVideo(**bind, video_file_id=file['file_id'])
+            elif f_type == ContentType.DOCUMENT:
+                item = InlineQueryResultCachedDocument(**bind, document_file_id=file['file_id'])
+            elif f_type == ContentType.ANIMATION:
+                item = InlineQueryResultCachedMpeg4Gif(
                     id=result_id,
                     mpeg4_file_id=file['file_id'],
                     title=bind['title'],
                     caption=bind['caption'],
                     parse_mode='html',
                 )
-            if f_type == ContentType.AUDIO:
-                item = types.InlineQueryResultCachedAudio(
+            elif f_type == ContentType.AUDIO:
+                item = InlineQueryResultCachedAudio(
                     id=result_id,
                     audio_file_id=file['file_id'],
                     caption=text,
                     parse_mode='html',
                 )
-            if f_type == ContentType.DOCUMENT:
-                item = types.InlineQueryResultCachedDocument(
-                    **bind,
-                    document_file_id=file['file_id'],
-                )
             items.append(item)
     else:
         result_id: str = hashlib.md5((text + str(query_id)).encode()).hexdigest()
-        items = [types.InlineQueryResultArticle(
+        items = [InlineQueryResultArticle(
             id=result_id,
             title=text,
             description=res['raw_text'],
             input_message_content=types.InputTextMessageContent(
                 text, parse_mode='html')
         )]
+    for it in items:
+        print(it)
     await bot.answer_inline_query(query_id, results=items, is_personal=True, cache_time=1)
 
 
@@ -272,9 +283,10 @@ async def on_bind(message: types.Message):
                 db.keywords.delete_one({'_id': match['_id']})
 
         db.keywords.insert_one(bind)
-        await send_keyword_answer(message.from_user.id, keywords)
     except (ValueError, IndexError):
         await send_simple_answer(message, TEXT.ON_BIND_ERROR)
+    else:
+        await send_keyword_answer(message.from_user.id, keywords)
 
 
 @dp.message_handler(commands=['unbind'])
