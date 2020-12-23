@@ -6,6 +6,7 @@ import hashlib
 import pymongo
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.message import ContentType
+from aiogram.types import BotCommand
 from aiogram.types.input_media import InputMedia, InputMediaPhoto, InputMediaVideo, \
     InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from aiogram.types.inline_query_result import InlineQueryResult, InlineQueryResultArticle, \
@@ -18,8 +19,8 @@ logging.basicConfig(level=logging.DEBUG)
 client = pymongo.MongoClient(DB_URL)
 db = client.kBinderDB
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+bot: Bot = Bot(token=TOKEN)
+dp: Dispatcher = Dispatcher(bot)
 
 
 def keyword_splitter(full_text: str):
@@ -309,5 +310,14 @@ async def on_unbind(message: types.Message):
         await send_simple_answer(message, TEXT.ON_UNBIND_DELETE_ERROR)
 
 
+async def on_startup(dispatch: Dispatcher):
+    await bot.set_my_commands([
+        BotCommand('bind', 'keyword your value - bind new keyword'),
+        BotCommand('list', '- show all keywords'),
+        BotCommand('help', '- additional information'),
+        BotCommand('unbind', 'keyword - delete bound keyword'),
+    ])
+
+
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
