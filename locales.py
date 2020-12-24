@@ -26,7 +26,7 @@ LOCALES = {
                       '\nи нажмите на появившийся предложенный ответ.',
         TEXT.ON_BIND_ERROR: 'Формат /bind не верен. \n'
                             'Не хватает аргументов. \n'
-                            'Используй /bind &lt;ключевое_слово&gt; <значение>. \n'
+                            'Используй /bind &lt;ключевое_слово&gt; &lt;значение&gt;. \n'
                             'Используй /help для дополнительной информации.',
         TEXT.ON_UNBIND_DELETE: 'Ключевое слово успешно удалено',
         TEXT.ON_UNBIND_DELETE_ERROR: 'Ключевое слово не найдено',
@@ -51,7 +51,7 @@ LOCALES = {
                       '\nand click on the suggested answer that appears',
         TEXT.ON_BIND_ERROR: 'Invalid format for /bind. \n'
                             'Not enough arguments. \n'
-                            'Use <code>/bind &lt;keyword&gt; <value></code>. \n'
+                            'Use <code>/bind &lt;keyword&gt; &lt;value&gt;</code>. \n'
                             'Use /help for additional info.',
         TEXT.ON_UNBIND_DELETE: 'Keyword successfully deleted',
         TEXT.ON_UNBIND_DELETE_ERROR: 'Keyword not found',
