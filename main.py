@@ -9,8 +9,8 @@ from aiogram.types.message import ContentType
 from aiogram.types import BotCommand
 from aiogram.types.input_media import InputMedia, InputMediaPhoto, InputMediaVideo, \
     InputMediaAudio, InputMediaDocument, InputMediaAnimation
-from aiogram.types.inline_query_result import InlineQueryResult, InlineQueryResultArticle, \
-    InlineQueryResultCachedAudio, InlineQueryResultCachedDocument, InlineQueryResultCachedGif, \
+from aiogram.types.inline_query_result import InlineQueryResultArticle, \
+    InlineQueryResultCachedAudio, InlineQueryResultCachedDocument, \
     InlineQueryResultCachedMpeg4Gif, InlineQueryResultCachedPhoto, InlineQueryResultCachedVideo
 from aiogram.dispatcher import filters
 
@@ -23,7 +23,7 @@ bot: Bot = Bot(token=TOKEN)
 dp: Dispatcher = Dispatcher(bot)
 
 
-def keyword_splitter(full_text: str):
+def keyword_splitter(full_text: str) -> tuple:
     split_text = full_text.split(maxsplit=2)[1:]
     kwd, txt = split_text if len(split_text) == 2 else (split_text[0], '')
     substring = ''
@@ -71,12 +71,13 @@ def keyword_splitter(full_text: str):
 
 
 def insert_args(text: str, args: list = ()) -> str:
-    var = r'(?=[^\\])(\W|^)@(\w*)(\W|$)'
+    var = r'(?=[^\\])(\W|^)@(\w' \
+          r')(\W|$)'
     edited_text = text
     for arg in args:
         try:
             left, default, right = re.search(var, edited_text).groups()
-        except ValueError:
+        except (ValueError, AttributeError):
             break
         if not default and right == ' ' and arg == '_':
             right = ''
@@ -93,41 +94,41 @@ def insert_args(text: str, args: list = ()) -> str:
 
 
 def input_media(file: dict, text: str) -> InputMedia:
-    type = file['type']
+    f_type = file['type']
     file_id = file['file_id']
     params = {'caption': text, 'parse_mode': 'html'}
-    if type == ContentType.PHOTO:
+    if f_type == ContentType.PHOTO:
         return InputMediaPhoto(file_id, **params)
-    if type == ContentType.VIDEO:
+    if f_type == ContentType.VIDEO:
         return InputMediaVideo(file_id, **params)
-    if type == ContentType.AUDIO:
+    if f_type == ContentType.AUDIO:
         return InputMediaAudio(file_id, **params)
-    if type == ContentType.DOCUMENT:
+    if f_type == ContentType.DOCUMENT:
         return InputMediaDocument(file_id, **params)
-    if type == ContentType.ANIMATION:
+    if f_type == ContentType.ANIMATION:
         return InputMediaAnimation(file_id, **params)
 
 
 async def send_input_media_message(user_id: (int, str), text: str, file: (dict, None)) -> types.Message:
-    type = file['type']
+    f_type = file['type']
     file_id = file['file_id']
     params = {'chat_id': user_id, 'caption': text, 'parse_mode': 'html'}
-    if type == ContentType.PHOTO:
+    if f_type == ContentType.PHOTO:
         return await bot.send_photo(photo=file_id, **params)
-    if type == ContentType.VIDEO:
+    if f_type == ContentType.VIDEO:
         return await bot.send_video(video=file_id, **params)
-    if type == ContentType.AUDIO:
+    if f_type == ContentType.AUDIO:
         return await bot.send_audio(audio=file_id, **params)
-    if type == ContentType.DOCUMENT:
+    if f_type == ContentType.DOCUMENT:
         return await bot.send_document(document=file_id, **params)
-    if type == ContentType.ANIMATION:
+    if f_type == ContentType.ANIMATION:
         return await bot.send_animation(animation=file_id, **params)
 
 
 async def send_simple_answer(message: types.Message, variant: str, params: list = ()):
     locale = (message.from_user.language_code or 'en').split('-')[0]
     text = LOCALES['en'][variant] if locale not in LOCALES else LOCALES[locale][variant]
-    await bot.send_message(chat_id=message.chat.id, text=text.format(*params), parse_mode='Markdown')
+    await bot.send_message(chat_id=message.chat.id, text=text.format(*params), parse_mode='html')
 
 
 async def send_keyword_answer(user_id: (int, str), keywords: list):
@@ -228,16 +229,17 @@ async def on_start(message: types.Message):
 async def on_list(message: types.Message):
     user_id = message.from_user.id
     res = list(db.keywords.find({'user_id': user_id}))
+    await bot.send_chat_action(message.chat.id, 'typing')
     if len(res):
         text = '\n'.join(list(map(
-            lambda kwd: f'`{", ".join(kwd["key"])}`: _{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}..._', res)))
+            lambda kwd: f'<code>{", ".join(kwd["key"])}</code>: '
+                        f'<i>{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}...</i>', res)))
         await send_simple_answer(message, TEXT.ON_LIST, [text])
     else:
         await send_simple_answer(message, TEXT.ON_LIST_EMPTY)
 
 
-@dp.message_handler(filters.Command('bind', ignore_caption=False),
-                    content_types=types.ContentTypes.ANY)
+@dp.message_handler(filters.Command('bind', ignore_caption=False), content_types=types.ContentTypes.ANY)
 async def on_bind(message: types.Message):
     media_group = []
     if message.content_type != ContentType.TEXT:
@@ -301,6 +303,7 @@ async def on_unbind(message: types.Message):
     user_id = message.from_user.id
     try:
         key: str = message.text.split(maxsplit=2)[1:3][0]
+        key = key.lower()
         matches = list(db.keywords.find({'user_id': user_id, 'key': key}))
         for match in matches:
             new_keys = [x for x in match['key'] if x != key]
