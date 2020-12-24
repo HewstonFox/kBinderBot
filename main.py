@@ -71,17 +71,23 @@ def keyword_splitter(full_text: str):
 
 
 def insert_args(text: str, args: list = ()) -> str:
-    var = r' @([\w]*) '
+    var = r'(?=[^\\])(\W|^)@(\w*)(\W|$)'
     edited_text = text
     for arg in args:
-        if arg == '_':
-            default = re.search(var, edited_text).groups()[0]
-            edited_text = re.sub(var, f' {default} ' if default else ' ', edited_text, 1)
-            continue
-        edited_text = re.sub(var, f' {arg} ', edited_text, 1)
+        try:
+            left, default, right = re.search(var, edited_text).groups()
+        except ValueError:
+            break
+        if not default and right == ' ' and arg == '_':
+            right = ''
+        edited_text = re.sub(var, f'{left}{default if arg == "_" else arg}{right}', edited_text, 1)
     while searched := re.search(var, edited_text):
-        default = searched.groups()[0]
-        edited_text = re.sub(var, f' {default} ' if default else ' ', edited_text, 1)
+        left, default, right = searched.groups()
+        edited_text = re.sub(var, f'{left}{default}{right}' if default else ' ', edited_text, 1)
+    excludes = r'(\W|^)\\(@|_)(\W|$)'
+    while searched := re.search(excludes, edited_text):
+        left, value, right = searched.groups()
+        edited_text = re.sub(excludes, f'{left}{value}{right}', edited_text, 1)
     edited_text = edited_text.replace(r' \@', ' @')
     return edited_text
 
