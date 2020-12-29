@@ -71,15 +71,14 @@ def keyword_splitter(full_text: str) -> tuple:
 
 
 def insert_args(text: str, args: list = ()) -> str:
-    var = r'(?=[^\\])(\W|^)@(\w' \
-          r')(\W|$)'
+    var = r'(?=[^\\])(\W|^)@(\w*)(\W|$)'
     edited_text = text
     for arg in args:
         try:
             left, default, right = re.search(var, edited_text).groups()
         except (ValueError, AttributeError):
             break
-        if not default and right == ' ' and arg == '_':
+        if not default and right == left == ' ' and arg == '_':
             right = ''
         edited_text = re.sub(var, f'{left}{default if arg == "_" else arg}{right}', edited_text, 1)
     while searched := re.search(var, edited_text):
