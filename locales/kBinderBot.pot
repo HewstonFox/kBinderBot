@@ -1,0 +1,49 @@
+# Translations template for kBinderBot.
+# Copyright (C) 2021 ORGANIZATION
+# This file is distributed under the same license as the kBinderBot project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: kBinderBot 1.1\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2021-03-20 14:49+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.0\n"
+"X-Generator: Poedit 2.4.2\n"
+"X-Poedit-Basepath: .\n"
+"X-Poedit-SearchPath-0: .\n"
+
+# /start
+msgid "message_start"
+msgstr ""
+
+# /help
+msgid "message_help"
+msgstr ""
+
+# /list
+msgid "message_list"
+msgstr ""
+
+# /list (empty)
+msgid "message_list_empty"
+msgstr ""
+
+# binding error
+msgid "bind_error"
+msgstr ""
+
+# keyword delete success
+msgid "keyword_delete_success"
+msgstr ""
+
+# keyword delete error
+msgid "keyword_delete_error"
+msgstr ""

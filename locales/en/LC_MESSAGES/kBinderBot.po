@@ -1,0 +1,73 @@
+# English translations for kBinderBot.
+# Copyright (C) 2021 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# Hewston Fox <hewstonfox@gmail.com>, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2021-03-20 13:43+0200\n"
+"PO-Revision-Date: 2021-03-20 14:21+0200\n"
+"Last-Translator: Hewston Fox <hewstonfox@gmail.com>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.0\n"
+
+# /start
+msgid "message_start"
+msgstr ""
+"Hi, I am a bot that allows you to quickly access preliminary prepared "
+"information and instantly send it in Telegram. Type /help for more "
+"information"
+
+# /help
+msgid "message_help"
+msgstr ""
+"To set a keyword use \n"
+"<code>/bind</code> <b>&lt;keyword&gt;</b> <i>everything you want</i>\n"
+"The keyword must not contain spaces. \n"
+"If the keyword already exists, its value will be overwritten.\n"
+"All, what follows the keyword becomes its value. \n"
+"\n"
+"<code>/unbind</code> <b>&lt;keyword&gt;</b>\n"
+"Deletes the <b>keyword</b>\n"
+"\n"
+"/list\n"
+"Displays a list of all generated keywords.\n"
+"\n"
+"To <b>use</b> the generated keywords, just type in message\n"
+"<code>@kBinderBot</code> <b>&lt;keyword&gt;</b>\n"
+"and click on the suggested answer that appears"
+
+# /list
+msgid "message_list"
+msgstr ""
+"<b>Your keywords:</b>\n"
+"{list}"
+
+# /list (empty)
+msgid "message_list_empty"
+msgstr ""
+"You have no keywords yet. Add them using <code>/bind</code>.\n"
+"Type /help for additional information."
+
+# binding error
+msgid "bind_error"
+msgstr ""
+"Invalid format for /bind. \n"
+"Not enough arguments. \n"
+"Use <code>/bind &lt;keyword&gt; &lt;value&gt;</code>. \n"
+"Use /help for additional info."
+
+# keyword delete success
+msgid "keyword_delete_success"
+msgstr "Keyword successfully deleted"
+
+# keyword delete error
+msgid "keyword_delete_error"
+msgstr "Keyword not found"
