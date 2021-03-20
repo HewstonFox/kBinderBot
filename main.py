@@ -1,26 +1,41 @@
 from config import *
 import re
-from locales import LOCALES, TEXT
+from locales import MESSAGE
 import logging
 import hashlib
 import pymongo
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.types.message import ContentType
 from aiogram.types import BotCommand
-from aiogram.types.input_media import InputMedia, InputMediaPhoto, InputMediaVideo, \
-    InputMediaAudio, InputMediaDocument, InputMediaAnimation
-from aiogram.types.inline_query_result import InlineQueryResultArticle, \
-    InlineQueryResultCachedAudio, InlineQueryResultCachedDocument, \
-    InlineQueryResultCachedMpeg4Gif, InlineQueryResultCachedPhoto, InlineQueryResultCachedVideo
+from aiogram.types.message import ContentType
+from aiogram.types.input_media import \
+    InputMedia, \
+    InputMediaPhoto, \
+    InputMediaVideo, \
+    InputMediaAudio, \
+    InputMediaDocument, \
+    InputMediaAnimation
+from aiogram.types.inline_query_result import \
+    InlineQueryResultArticle, \
+    InlineQueryResultCachedAudio, \
+    InlineQueryResultCachedDocument, \
+    InlineQueryResultCachedMpeg4Gif, \
+    InlineQueryResultCachedPhoto, \
+    InlineQueryResultCachedVideo
 from aiogram.dispatcher import filters
+from aiogram.contrib.middlewares.i18n import I18nMiddleware
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 client = pymongo.MongoClient(DB_URL)
 db = client.kBinderDB
 
-bot: Bot = Bot(token=TOKEN)
+bot: Bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
 dp: Dispatcher = Dispatcher(bot)
+
+i18n = I18nMiddleware(I18N_DOMAIN, LOCALES_DIR)
+dp.middleware.setup(i18n)
+
+t = i18n.gettext
 
 
 def keyword_splitter(full_text: str) -> tuple:
@@ -95,7 +110,7 @@ def insert_args(text: str, args: list = ()) -> str:
 def input_media(file: dict, text: str) -> InputMedia:
     f_type = file['type']
     file_id = file['file_id']
-    params = {'caption': text, 'parse_mode': 'html'}
+    params = {'caption': text}
     if f_type == ContentType.PHOTO:
         return InputMediaPhoto(file_id, **params)
     if f_type == ContentType.VIDEO:
@@ -111,7 +126,7 @@ def input_media(file: dict, text: str) -> InputMedia:
 async def send_input_media_message(user_id: (int, str), text: str, file: (dict, None)) -> types.Message:
     f_type = file['type']
     file_id = file['file_id']
-    params = {'chat_id': user_id, 'caption': text, 'parse_mode': 'html'}
+    params = {'chat_id': user_id, 'caption': text}
     if f_type == ContentType.PHOTO:
         return await bot.send_photo(photo=file_id, **params)
     if f_type == ContentType.VIDEO:
@@ -122,12 +137,6 @@ async def send_input_media_message(user_id: (int, str), text: str, file: (dict, 
         return await bot.send_document(document=file_id, **params)
     if f_type == ContentType.ANIMATION:
         return await bot.send_animation(animation=file_id, **params)
-
-
-async def send_simple_answer(message: types.Message, variant: str, params: list = ()):
-    locale = (message.from_user.language_code or 'en').split('-')[0]
-    text = LOCALES['en'][variant] if locale not in LOCALES else LOCALES[locale][variant]
-    await bot.send_message(chat_id=message.chat.id, text=text.format(*params), parse_mode='html')
 
 
 async def send_keyword_answer(user_id: (int, str), keywords: list):
@@ -145,7 +154,7 @@ async def send_keyword_answer(user_id: (int, str), keywords: list):
     elif f_len > 0:
         await send_input_media_message(user_id, text, content['files'][0])
     else:
-        await bot.send_message(chat_id=user_id, text=text, parse_mode='html')
+        await bot.send_message(chat_id=user_id, text=text)
 
 
 @dp.inline_handler()
@@ -155,13 +164,17 @@ async def inline_answers(inline_query: types.InlineQuery):
         kwd = kwd.lower()
     except ValueError:
         return
+
     query_id = inline_query.id
     user_id = inline_query['from'].id
+
     try:
         res = list(db.keywords.find(
             {'user_id': user_id, 'key': kwd}))[0]
     except IndexError:
+        await bot.answer_inline_query(query_id, results=[], switch_pm_text="Bind keyword", switch_pm_parameter=f'{kwd}')
         return
+
     f_len = len(res['files'])
     text = insert_args(res['text'], args)
 
@@ -174,8 +187,7 @@ async def inline_answers(inline_query: types.InlineQuery):
                 'id': result_id,
                 'title': kwd,
                 'caption': text,
-                'description': res['raw_text'],
-                'parse_mode': 'html',
+                'description': res['raw_text']
             }
             item = None
             if f_type == ContentType.PHOTO:
@@ -190,14 +202,12 @@ async def inline_answers(inline_query: types.InlineQuery):
                     mpeg4_file_id=file['file_id'],
                     title=bind['title'],
                     caption=bind['caption'],
-                    parse_mode='html',
                 )
             elif f_type == ContentType.AUDIO:
                 item = InlineQueryResultCachedAudio(
                     id=result_id,
                     audio_file_id=file['file_id'],
                     caption=text,
-                    parse_mode='html',
                 )
             items.append(item)
     else:
@@ -206,22 +216,19 @@ async def inline_answers(inline_query: types.InlineQuery):
             id=result_id,
             title=text,
             description=res['raw_text'],
-            input_message_content=types.InputTextMessageContent(
-                text, parse_mode='html')
+            input_message_content=types.InputTextMessageContent(text)
         )]
-    for it in items:
-        print(it)
     await bot.answer_inline_query(query_id, results=items, is_personal=True, cache_time=1)
 
 
 @dp.message_handler(commands=['help'])
 async def on_help(message: types.Message):
-    await send_simple_answer(message, TEXT.ON_HELP)
+    await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.COMMAND.HELP))
 
 
 @dp.message_handler(commands=['start'])
 async def on_start(message: types.Message):
-    await send_simple_answer(message, TEXT.ON_START)
+    await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.COMMAND.START))
 
 
 @dp.message_handler(commands=['list'])
@@ -233,9 +240,9 @@ async def on_list(message: types.Message):
         text = '\n'.join(list(map(
             lambda kwd: f'<code>{", ".join(kwd["key"])}</code>: '
                         f'<i>{" ".join(kwd["raw_text"].split(maxsplit=4)[:3])}...</i>', res)))
-        await send_simple_answer(message, TEXT.ON_LIST, [text])
+        await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.COMMAND.LIST).format(list=text))
     else:
-        await send_simple_answer(message, TEXT.ON_LIST_EMPTY)
+        await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.COMMAND.LIST_EMPTY))
 
 
 @dp.message_handler(filters.Command('bind', ignore_caption=False), content_types=types.ContentTypes.ANY)
@@ -292,7 +299,7 @@ async def on_bind(message: types.Message):
 
         db.keywords.insert_one(bind)
     except (ValueError, IndexError):
-        await send_simple_answer(message, TEXT.ON_BIND_ERROR)
+        await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.BIND.ERROR))
     else:
         await send_keyword_answer(message.from_user.id, keywords)
 
@@ -311,11 +318,11 @@ async def on_unbind(message: types.Message):
             else:
                 db.keywords.delete_one({'_id': match['_id']})
         if len(matches):
-            await send_simple_answer(message, TEXT.ON_UNBIND_DELETE)
+            await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.KEYWORD.DELETE.SUCCESS))
         else:
             raise IndexError
     except IndexError:
-        await send_simple_answer(message, TEXT.ON_UNBIND_DELETE_ERROR)
+        await bot.send_message(chat_id=message.chat.id, text=t(MESSAGE.KEYWORD.DELETE.ERROR))
 
 
 async def on_startup(dispatch: Dispatcher):
