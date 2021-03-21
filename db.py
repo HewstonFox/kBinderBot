@@ -34,7 +34,7 @@ def update_user(user: User) -> UserRecord:
         {
             '$setOnInsert': {
                 'user_id': user.id,
-                'keywords': []
+                'keywords': {}
             },
             '$set': {
                 'full_name': user.full_name,
