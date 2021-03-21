@@ -47,10 +47,13 @@ def update_user(user: User) -> UserRecord:
 
 
 def update_user_keywords(user_id: (int, str), keywords: Dict[str, str]):
-    db.users.update_one(
-        {'user_id': user_id},
-        {'$set': {'keywords': keywords}}
-    )
+    if keywords:
+        db.users.update_one(
+            {'user_id': user_id},
+            {'$set': {'keywords': keywords}}
+        )
+    else:
+        db.users.delete_one({'user_id': user_id})
 
 
 def remove_keyword(user_id: (int, str), key: str):
