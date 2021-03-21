@@ -23,7 +23,7 @@ from aiogram.types import \
     InlineQueryResultCachedDocument, \
     InlineQueryResultCachedMpeg4Gif
 from typing import List, Union
-from bot_types import BindRecord, BindFile
+from bot_types import BindRecord, BindFile, ACTION
 
 
 def keyword_splitter(full_text: str) -> tuple:
@@ -211,13 +211,13 @@ def create_keywords_keyboard(user_id: (int, str), keywords: List, chink_size: in
     return InlineKeyboardMarkup(
         inline_keyboard=[
             list(map(
-                lambda key: InlineKeyboardButton(key, callback_data=f'{user_id} {key}'),
+                lambda key: InlineKeyboardButton(key, callback_data=f'{ACTION.SHOW} {user_id} {key}'),
                 keywords[i:i + chink_size]
             ))
             for i in range(0, len(keywords), chink_size)
         ])
 
 
-def unpack_keyword_query_data(query: CallbackQuery) -> ((int, str), str):
-    (user_id, key) = query.data.split()
-    return int(user_id), key
+def unpack_keyword_query_data(query: CallbackQuery) -> (str, (int, str), [str]):
+    (action, user_id, *meta) = query.data.split()
+    return action, int(user_id), meta

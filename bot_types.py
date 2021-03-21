@@ -22,6 +22,11 @@ class UserRecord(TypedDict):
     keywords: Dict[str, str]
 
 
+class ACTION:
+    SHOW = 'show'
+    DELETE = 'delete'
+
+
 class DocumentNotFoundError(Exception):
     """Document not exist in collection"""
     pass
