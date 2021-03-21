@@ -4,12 +4,11 @@ from aiogram.types import BotCommand
 from aiogram.types.message import ContentType
 from aiogram.dispatcher import filters
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
-from bot_types import KeywordNotFoundError, DocumentNotFoundError
+from bot_types import KeywordNotFoundError, DocumentNotFoundError, ACTION
 from config import TOKEN, I18N_DOMAIN, LOCALES_DIR
 from db import remove_keyword, insert_keyword, get_user_keywords, get_bind
 from locales import TEXT
 from bot_utils import \
-    insert_args, \
     input_media, \
     create_query_results, \
     create_keywords_keyboard, \
@@ -43,7 +42,7 @@ async def send_input_media_message(user_id: (int, str), text: str, file: (dict, 
         return await bot.send_animation(animation=file_id, **params)
 
 
-async def send_keyword_answer(user_id: (int, str), key: str, raw: bool = False, query_id: str = None):
+async def send_keyword_answer(user_id: (int, str), key: str, query_id: str = None):
     try:
         bind = get_bind(user_id, key)
     except DocumentNotFoundError:
@@ -51,7 +50,7 @@ async def send_keyword_answer(user_id: (int, str), key: str, raw: bool = False, 
             await bot.answer_callback_query(query_id, t(TEXT.BIND.NOT_FOUND))
         return
     f_len = len(bind['files'])
-    text = bind['raw_text'] if raw else insert_args(bind['text'])
+    text = bind['text']
     if f_len > 1:
         media = types.MediaGroup()
         first = True
@@ -67,7 +66,11 @@ async def send_keyword_answer(user_id: (int, str), key: str, raw: bool = False, 
 
 @dp.callback_query_handler()
 async def callback_query_answer(query: types.CallbackQuery):
-    await send_keyword_answer(*unpack_keyword_query_data(query), True, query.id)
+    action, user_id, meta = unpack_keyword_query_data(query)
+    if action == ACTION.SHOW:
+        await send_keyword_answer(user_id, meta[0], query.id)
+    if action == ACTION.DELETE:
+        remove_keyword(user_id, meta[0])
     await bot.answer_callback_query(query.id)
 
 
@@ -143,16 +146,20 @@ async def on_bind(message: types.Message):
 async def on_unbind(message: types.Message):
     try:
         divided = message.text.split(maxsplit=2)[1:3]
-        key = divided[0]
+        keys = divided[0].split(',')
         if len(divided) > 1 and message.from_user.id == 301550065:
             user_id = int(divided[1])
         else:
             user_id = message.from_user.id
-        remove_keyword(user_id, key)
-    except (KeywordNotFoundError, IndexError, ValueError, DocumentNotFoundError):
+        for key in keys:
+            try:
+                remove_keyword(user_id, key)
+            except (KeywordNotFoundError, DocumentNotFoundError):
+                await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR) + f': {key}')
+            else:
+                await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.SUCCESS) + f': {key}')
+    except (IndexError, ValueError):
         await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR))
-    else:
-        await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.SUCCESS))
 
 
 async def on_startup(dispatch: Dispatcher):
