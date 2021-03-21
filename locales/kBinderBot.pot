@@ -23,35 +23,59 @@ msgstr ""
 # /start
 msgid "message_start"
 msgstr ""
+"Hi, I am a bot that allows you to quickly access preliminary prepared "
+"information and instantly send it in Telegram. Type /help for more "
+"information"
 
 # /help
 msgid "message_help"
 msgstr ""
+"To set a keyword use \n"
+"<code>/bind</code> <b>&lt;keyword&gt;</b> <i>everything you want</i>\n"
+"The keyword must not contain spaces. \n"
+"If the keyword already exists, its value will be overwritten.\n"
+"All, what follows the keyword becomes its value. \n"
+"\n"
+"<code>/unbind</code> <b>&lt;keyword&gt;</b>\n"
+"Deletes the <b>keyword</b>\n"
+"\n"
+"/list\n"
+"Displays a list of all generated keywords.\n"
+"\n"
+"To <b>use</b> the generated keywords, just type in message\n"
+"<code>@kBinderBot</code> <b>&lt;keyword&gt;</b>\n"
+"and click on the suggested answer that appears"
 
 # /list
 msgid "message_list"
-msgstr ""
+msgstr "<b>Your keywords:</b>\n"
 
 # /list (empty)
 msgid "message_list_empty"
 msgstr ""
+"You have no keywords yet. Add them using <code>/bind</code>.\n"
+"Type /help for additional information."
 
 # binding error
 msgid "bind_error"
 msgstr ""
+"Invalid format for /bind. \n"
+"Not enough arguments. \n"
+"Use <code>/bind &lt;keyword&gt; &lt;value&gt;</code>. \n"
+"Use /help for additional info."
 
 # keyword delete success
 msgid "keyword_delete_success"
-msgstr ""
+msgstr "Keyword successfully deleted"
 
 # keyword delete error
 msgid "keyword_delete_error"
-msgstr ""
+msgstr "Keyword not found"
 
 # not found keyword button
 msgid "button_bind_keyword"
-msgstr ""
+msgstr "Bind keyword"
 
 # keyword not found
 msgid "bind_not_found"
-msgstr ""
+msgstr "Keyword not found"
