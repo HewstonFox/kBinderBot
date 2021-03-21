@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-03-20 13:43+0200\n"
+"POT-Creation-Date: 2021-03-20 14:49+0200\n"
 "PO-Revision-Date: 2021-03-20 14:21+0200\n"
 "Last-Translator: Hewston Fox <hewstonfox@gmail.com>\n"
 "Language: en\n"
@@ -46,9 +46,7 @@ msgstr ""
 
 # /list
 msgid "message_list"
-msgstr ""
-"<b>Your keywords:</b>\n"
-"{list}"
+msgstr "<b>Your keywords:</b>\n"
 
 # /list (empty)
 msgid "message_list_empty"
@@ -71,3 +69,12 @@ msgstr "Keyword successfully deleted"
 # keyword delete error
 msgid "keyword_delete_error"
 msgstr "Keyword not found"
+
+# not found keyword button
+msgid "button_bind_keyword"
+msgstr "Bind keyword"
+
+# keyword not found
+msgid "bind_not_found"
+msgstr "Keyword not found"
+

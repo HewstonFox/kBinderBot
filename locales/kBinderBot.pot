@@ -47,3 +47,11 @@ msgstr ""
 # keyword delete error
 msgid "keyword_delete_error"
 msgstr ""
+
+# not found keyword button
+msgid "button_bind_keyword"
+msgstr ""
+
+# keyword not found
+msgid "bind_not_found"
+msgstr ""
