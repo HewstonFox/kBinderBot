@@ -68,6 +68,13 @@ def remove_keyword(user_id: (int, str), key: str):
         db.keywords.delete_one({'_id': bind_id})
 
 
+def remove_all_keywords(user_id):
+    user_record = get_user(user_id)
+    for bind_id in user_record['keywords'].values():
+        db.keywords.delete_one({'_id': bind_id})
+    update_user_keywords(user_id, {})
+
+
 def insert_keyword(user: User, record: BindRecord, keys: List[str]):
     user_record = update_user(user)
     for key in keys:
@@ -93,3 +100,7 @@ def get_bind(user_id: (int, str), kwd: str) -> BindRecord:
     except KeyError:
         raise DocumentNotFoundError
     return db.keywords.find_one({'_id': bind_id})
+
+
+def check_admin(user_id: (int, str)) -> bool:
+    return bool(db.admins.find_one({'user_id': user_id}))

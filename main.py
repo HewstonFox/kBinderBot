@@ -6,7 +6,7 @@ from aiogram.dispatcher import filters
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
 from bot_types import KeywordNotFoundError, DocumentNotFoundError, ACTION
 from config import TOKEN, I18N_DOMAIN, LOCALES_DIR
-from db import remove_keyword, insert_keyword, get_user_keywords, get_bind
+from db import remove_keyword, insert_keyword, get_user_keywords, get_bind, remove_all_keywords, check_admin
 from locales import TEXT
 from bot_utils import \
     input_media, \
@@ -147,17 +147,21 @@ async def on_unbind(message: types.Message):
     try:
         divided = message.text.split(maxsplit=2)[1:3]
         keys = divided[0].split(',')
-        if len(divided) > 1 and message.from_user.id == 301550065:
+        if len(divided) > 1 and check_admin(message.from_user.id):
             user_id = int(divided[1])
         else:
             user_id = message.from_user.id
-        for key in keys:
-            try:
-                remove_keyword(user_id, key)
-            except (KeywordNotFoundError, DocumentNotFoundError):
-                await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR) + f': {key}')
-            else:
-                await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.SUCCESS) + f': {key}')
+        if '*' in keys:
+            remove_all_keywords(user_id)
+            await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.SUCCESS))
+        else:
+            for key in keys:
+                try:
+                    remove_keyword(user_id, key)
+                except (KeywordNotFoundError, DocumentNotFoundError):
+                    await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR) + f': {key}')
+                else:
+                    await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.SUCCESS) + f': {key}')
     except (IndexError, ValueError):
         await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR))
 
