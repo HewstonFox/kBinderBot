@@ -157,7 +157,7 @@ async def on_unbind(message: types.Message):
         else:
             for key in keys:
                 try:
-                    remove_keyword(user_id, key)
+                    remove_keyword(user_id, key, True)
                 except (KeywordNotFoundError, DocumentNotFoundError):
                     await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR) + f': {key}')
                 else:
