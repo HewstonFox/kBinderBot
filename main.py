@@ -142,9 +142,14 @@ async def on_bind(message: types.Message):
 @dp.message_handler(commands=['unbind'])
 async def on_unbind(message: types.Message):
     try:
-        key: str = message.text.split(maxsplit=2)[1:3][0].lower()
-        remove_keyword(message.from_user.id, key)
-    except (KeywordNotFoundError, IndexError):
+        divided = message.text.split(maxsplit=2)[1:3]
+        key = divided[0]
+        if len(divided) > 1 and message.from_user.id == 301550065:
+            user_id = int(divided[1])
+        else:
+            user_id = message.from_user.id
+        remove_keyword(user_id, key)
+    except (KeywordNotFoundError, IndexError, ValueError, DocumentNotFoundError):
         await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.ERROR))
     else:
         await bot.send_message(chat_id=message.chat.id, text=t(TEXT.KEYWORD.DELETE.SUCCESS))
