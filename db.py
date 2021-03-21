@@ -72,7 +72,7 @@ def remove_all_keywords(user_id):
     user_record = get_user(user_id)
     for bind_id in user_record['keywords'].values():
         db.keywords.delete_one({'_id': bind_id})
-    update_user_keywords(user_id, {})
+    db.users.delete_one({'user_id': user_id})
 
 
 def insert_keyword(user: User, record: BindRecord, keys: List[str]):

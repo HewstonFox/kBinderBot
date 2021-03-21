@@ -74,6 +74,17 @@ def keyword_splitter(full_text: str) -> tuple:
 
 
 def insert_args(text: str, args: list = ()) -> str:
+    """
+
+    :param text: text to parse
+    :param args: values to insert
+    :return: str
+
+    FUTURE
+        var = r"(?!')\[(.*)\](?!')"
+        remove quotes: r"'\[(.*)\]'"
+    """
+
     var = r'(?=[^\\])(\W|^)@(\w*)(\W|$)'
     edited_text = text
     for arg in args:
