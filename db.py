@@ -47,21 +47,21 @@ def update_user(user: User) -> UserRecord:
 
 
 def update_user_keywords(user_id: (int, str), keywords: Dict[str, str]):
-    if keywords:
-        db.users.update_one(
-            {'user_id': user_id},
-            {'$set': {'keywords': keywords}}
-        )
-    else:
-        db.users.delete_one({'user_id': user_id})
+    db.users.update_one(
+        {'user_id': user_id},
+        {'$set': {'keywords': keywords}}
+    )
 
 
-def remove_keyword(user_id: (int, str), key: str):
+def remove_keyword(user_id: (int, str), key: str, with_user: bool = False):
     user_record = get_user(user_id)
     try:
         keywords = user_record['keywords']
         bind_id = keywords.pop(key)
-        update_user_keywords(user_id, keywords)
+        if keywords:
+            update_user_keywords(user_id, keywords)
+        elif with_user:
+            db.users.delete_one({'user_id': user_id})
     except KeyError:
         raise KeywordNotFoundError
     if bind_id not in user_record['keywords'].values():
