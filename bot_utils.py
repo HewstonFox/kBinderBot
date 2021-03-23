@@ -93,7 +93,7 @@ def insert_args(text: str, args: list = List[str]) -> str:
     while match := re.search(var, edited_text):
         p, l, d, r = match.groups()
         edited_text = re.sub(var, f'{p}{d}', edited_text, 1)
-    print(edited_text)
+
     point = 0
     while match := re.search(escape, edited_text[point:]):
         groups = match.groups()
