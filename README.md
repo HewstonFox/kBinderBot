@@ -33,8 +33,12 @@ You should define environment variables: \
 ![Bind example](assets/example_use.jpg)
 
 ## Special abilities
-#### Variables
+#### Variables 
 
+> ###***Depricated***
+
+ <del>
+ 
 ![Bind example](assets/use_variable.jpg)
 
 To create changeable content in your template use `@default_value` (without spaces)
@@ -45,6 +49,8 @@ To set it while using enter new values after keyword in order defined in templat
 >`@` without default value will be removed if no value presented while using  
 
 >To save a link to user like `@NickName` type `\ ` before it like: `\@NickName`, slash will be deleted.  
+ 
+</del>
 
 #### Formatting
 

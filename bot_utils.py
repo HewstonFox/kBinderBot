@@ -73,36 +73,33 @@ def keyword_splitter(full_text: str) -> tuple:
     return keyword.lower(), text, raw_text
 
 
-def insert_args(text: str, args: list = ()) -> str:
-    """
-
-    :param text: text to parse
-    :param args: values to insert
-    :return: str
-
-    FUTURE
-        var = r"(?!')\[(.*)\](?!')"
-        remove quotes: r"'\[(.*)\]'"
-    """
-
-    var = r'(?=[^\\])(\W|^)@(\w*)(\W|$)'
+def insert_args(text: str, args: list = List[str]) -> str:
+    var = r'(?=[^\\])(.|^)(\{)(\w*)(\})'
+    skip = r'^\\+_$'
+    escape = r'(\\\{)(\w*)(\})'
     edited_text = text
-    for arg in args:
-        try:
-            left, default, right = re.search(var, edited_text).groups()
-        except (ValueError, AttributeError):
-            break
-        if not default and right == left == ' ' and arg == '_':
-            right = ''
-        edited_text = re.sub(var, f'{left}{default if arg == "_" else arg}{right}', edited_text, 1)
-    while searched := re.search(var, edited_text):
-        left, default, right = searched.groups()
-        edited_text = re.sub(var, f'{left}{default}{right}' if default else ' ', edited_text, 1)
-    excludes = r'(\W|^)\\(@|_)(\W|$)'
-    while searched := re.search(excludes, edited_text):
-        left, value, right = searched.groups()
-        edited_text = re.sub(excludes, f'{left}{value}{right}', edited_text, 1)
-    edited_text = edited_text.replace(r' \@', ' @')
+
+    for value in args:
+        if match := re.search(var, edited_text):
+            p, l, d, r = match.groups()
+            if value == '_':
+                val = d
+            elif re.search(skip, value):
+                val = value[1:]
+            else:
+                val = value
+            edited_text = re.sub(var, f'{p}{val}', edited_text, 1)
+
+    while match := re.search(var, edited_text):
+        p, l, d, r = match.groups()
+        edited_text = re.sub(var, f'{p}{d}', edited_text, 1)
+    print(edited_text)
+    point = 0
+    while match := re.search(escape, edited_text[point:]):
+        groups = match.groups()
+        edited_text = edited_text[:point] + re.sub(escape, f'{{{groups[1]}}}', edited_text[point:], 1)
+        point = match.end() + point - 1
+
     return edited_text
 
 
