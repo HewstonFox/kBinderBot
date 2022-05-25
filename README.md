@@ -62,9 +62,9 @@ via telegram built-in methods
 
 #### File group
 
-![Bind example](assets/selected_files.jpg)
+![Bind example](assets/files.jpg)
 
 You can send several files in one message (photo, video, documents, audio, GIF) 
 to have ability to choose it while using like option in shown list
 
-![Bind example](assets/files.jpg)
+![Bind example](assets/selected_files.jpg)
